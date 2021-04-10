@@ -11,60 +11,94 @@ START_YMD_HM="${START_TIMESTAMP:0:8}_${START_TIMESTAMP:8:4}"
 START_YMD="${START_TIMESTAMP:0:8}"
 
 # ログレベル
+# デフォルトは全レベル出力。
+# レベルを変更する場合は、このスクリプトを呼んだあとで、呼び出し側スクリプトでLOG_LEVELを上書きする。
 LOG_LEVEL=0
-LOG_LEVEL_DEBUG=1
-LOG_LEVEL_INFO=2
-LOG_LEVEL_WARN=3
-LOG_LEVEL_ERROR=4
-LOG_LEVEL_NONE=5
+LOG_LEVEL_TRACE=1
+LOG_LEVEL_DEBUG=2
+LOG_LEVEL_INFO=3
+LOG_LEVEL_WARN=4
+LOG_LEVEL_ERROR=5
+LOG_LEVEL_NONE=6
 
 # ログ出力関数
+# $1=ログ文字列 $2=ログレベルを表す数値 $3=ログレベルを表す文字列
 function log() {
-	local TIMESTAMP="$(date "+%Y%m%d-%H%M%S")"
-	local LOG="${TIMESTAMP} ${1} ${2}"
-	echo "${LOG}" >> ${LOGPATH}
-	echo "${LOG}"
+	if [ "${LOG_LEVEL}" -le "$2" ]; then
+		local TIMESTAMP="$(date "+%Y%m%d-%H%M%S")"
+		local LOG="${TIMESTAMP} [${3}] ${1}"
+		echo -e "${LOG}" >> ${LOGPATH} 2>&1
+		echo -e "${LOG}"
+	fi
 }
 function logError() {
-	if [ "${LOG_LEVEL}" -le "${LOG_LEVEL_ERROR}" ]; then
-		echo "$(log "[ERROR]" "$1")"
-	fi
+	log "$1" "${LOG_LEVEL_ERROR}" "ERROR"
 }
 function logWarn() {
-	if [ "${LOG_LEVEL}" -le "${LOG_LEVEL_WARN}" ]; then
-		echo "$(log "[WARN] " "$1")"
-	fi
+	log "$1" "${LOG_LEVEL_WARN}" "WARN"
 }
 function logInfo() {
-	if [ "${LOG_LEVEL}" -le "${LOG_LEVEL_INFO}" ]; then
-		echo "$(log "[INFO] " "$1")"
-	fi
+	log "$1" "${LOG_LEVEL_INFO}" "INFO"
 }
 function logDebug() {
-	if [ "${LOG_LEVEL}" -le "${LOG_LEVEL_DEBUG}" ]; then
-		echo "$(log "[DEBUG]" "$1")"
-	fi
+	log "$1" "${LOG_LEVEL_DEBUG}" "DEBUG"
+}
+function logTrace() {
+	log "$1" "${LOG_LEVEL_TRACE}" "TRACE"
 }
 
 # コマンドをログ出力＋実行する関数
-# 実行結果はログレベルにかかわらず出力する。
+# $1=コマンド文字列 $2=DRYRUN指定 $3=ログ出力関数名 $4=基準ログレベル
 function doEval() {
-	eval $1 >> ${LOGPATH} 2>&1
+	if [ "${LOG_LEVEL}" -le "$4" ]; then
+		if [ "${IS_DRYRUN}" = 'TRUE' -a "$2" = 'DRYRUN' ]; then
+			echo `$3 command:"$1 (DRYRUN, not executed)"`
+		else
+			echo `$3 command:"$1"`
+			eval "$1" >> ${LOGPATH} 2>&1
+		fi
+	fi
 }
+# $1：コマンド文字列
+# $2：'DRYRUN'を指定すると、DRYRUNモードであれば実行しない。
 function evalError() {
-	logError "command: $1"
-	doEval "$1"
+	doEval "$1" "$2" 'logError' "${LOG_LEVEL_ERROR}"
 }
 function evalWarn() {
-	logWarn "command: $1"
-	doEval "$1"
+	doEval "$1" "$2" 'logWarn' "${LOG_LEVEL_WARN}"
 }
 function evalInfo() {
-	logInfo "command: $1"
-	doEval "$1"
+	doEval "$1" "$2" 'logInfo' "${LOG_LEVEL_INFO}"
 }
 function evalDebug() {
-	logDebug "command: $1"
-	doEval "$1"
+	doEval "$1" "$2" 'logDebug' "${LOG_LEVEL_DEBUG}"
+}
+function evalTrace() {
+	doEval "$1" "$2" 'logTrace' "${LOG_LEVEL_TRACE}"
 }
 
+# 検索対象文字列に対象行があった場合のみValueを返す
+# $1=検索対象文字列(複数行) $2=検索対象条件(正規表現) $3=返すValue
+function getValueIfKeyExists {
+	echo -e "$1" | while read line
+	do
+		local hit=$(echo $line | grep -E "$2" | wc -l)
+		if [ "$hit" -ge 1 ]; then
+			echo "$3"
+			return 0
+		fi
+	done
+}
+
+# 検索対象文字列に対象行があった場合のみFunctionを実行する
+# $1=検索対象文字列(複数行) $2=検索対象条件(正規表現) $3=実行するFunction
+function doFuncIfKeyExists {
+	echo -e "$1" | while read line
+	do
+		local hit=$(echo $line | grep -E "$2" | wc -l)
+		if [ "$hit" -ge 1 ]; then
+			`$3` > /dev/null 2>&1
+			return 0
+		fi
+	done
+}

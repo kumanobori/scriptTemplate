@@ -97,7 +97,7 @@ function doFuncIfKeyExists {
 	do
 		local hit=$(echo $line | grep -E "$2" | wc -l)
 		if [ "$hit" -ge 1 ]; then
-			`$3` > /dev/null 2>&1
+			echo `$3`
 			return 0
 		fi
 	done

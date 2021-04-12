@@ -60,8 +60,11 @@ LOG_LEVEL=${LOG_LEVEL_DEBUG}
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
 LOG_DIR=${SCRIPT_DIR}/log
 mkdir -p ${LOG_DIR}
-LOG_FILE="${START_YMD_HMS}.log"
+#LOG_FILE="${START_YMD_HMS}.log"
+LOG_FILE=log.txt
 LOGPATH=${LOG_DIR}/${LOG_FILE}
+exec 1> >(tee -a "${LOGPATH}") 2>&1
+
 logInfo "LOGPATH=${LOGPATH}"
 
 # 引数チェック

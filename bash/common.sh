@@ -1,7 +1,6 @@
 #!/bin/bash
 # --------------------------------------------------------
 # - 概要：バッチ開始日時文字列の生成と、ログ用関数の定義。
-# - 前提：各関数を呼び出すまでに、呼び出し元で変数${LOGPATH}が指定されること
 # --------------------------------------------------------
 
 # 日付変数
@@ -22,29 +21,28 @@ LOG_LEVEL_ERROR=5
 LOG_LEVEL_NONE=6
 
 # ログ出力関数
-# $1=ログ文字列 $2=ログレベルを表す数値 $3=ログレベルを表す文字列
+# $1=ログ文字列 $2=ログレベルを表す数値 $3=ログレベルを表す文字列 $4=呼出元ファイル $5=呼出元行番号
 function log() {
 	if [ "${LOG_LEVEL}" -le "$2" ]; then
 		local TIMESTAMP="$(date "+%Y%m%d-%H%M%S")"
-		local LOG="${TIMESTAMP} [${3}] ${1}"
-		echo -e "${LOG}" >> ${LOGPATH} 2>&1
+		local LOG="${TIMESTAMP} ($4:$5) [${3}] ${1}"
 		echo -e "${LOG}"
 	fi
 }
 function logError() {
-	log "$1" "${LOG_LEVEL_ERROR}" "ERROR"
+	log "$1" "${LOG_LEVEL_ERROR}" "ERROR" "${BASH_SOURCE[1]##*/}" "${BASH_LINENO[0]}"
 }
 function logWarn() {
-	log "$1" "${LOG_LEVEL_WARN}" "WARN"
+	log "$1" "${LOG_LEVEL_WARN}" "WARN" "${BASH_SOURCE[1]##*/}" "${BASH_LINENO[0]}"
 }
 function logInfo() {
-	log "$1" "${LOG_LEVEL_INFO}" "INFO"
+	log "$1" "${LOG_LEVEL_INFO}" "INFO" "${BASH_SOURCE[1]##*/}" "${BASH_LINENO[0]}"
 }
 function logDebug() {
-	log "$1" "${LOG_LEVEL_DEBUG}" "DEBUG"
+	log "$1" "${LOG_LEVEL_DEBUG}" "DEBUG" "${BASH_SOURCE[1]##*/}" "${BASH_LINENO[0]}"
 }
 function logTrace() {
-	log "$1" "${LOG_LEVEL_TRACE}" "TRACE"
+	log "$1" "${LOG_LEVEL_TRACE}" "TRACE" "${BASH_SOURCE[1]##*/}" "${BASH_LINENO[0]}"
 }
 
 # コマンドをログ出力＋実行する関数
@@ -55,7 +53,7 @@ function doEval() {
 			echo `$3 command:"$1 (DRYRUN, not executed)"`
 		else
 			echo `$3 command:"$1"`
-			eval "$1" >> ${LOGPATH} 2>&1
+			eval "$1"
 		fi
 	fi
 }
@@ -80,25 +78,28 @@ function evalTrace() {
 # 検索対象文字列に対象行があった場合のみValueを返す
 # $1=検索対象文字列(複数行) $2=検索対象条件(正規表現) $3=返すValue
 function getValueIfKeyExists {
-	echo -e "$1" | while read line
-	do
-		local hit=$(echo $line | grep -E "$2" | wc -l)
-		if [ "$hit" -ge 1 ]; then
-			echo "$3"
-			return 0
-		fi
-	done
+	local hit=$(echo -e -n $1 | grep -E "$2" | wc -l)
+	if [ "$hit" -ge 1 ]; then
+		echo "$3"
+	fi
+}
+
+# コマンド置換の結果を変数に格納しない場合、
+# 内部でechoされたものをコマンドとして実行しようとしてエラーになる。
+# ・・・のを回避するための関数。
+# コマンド置換を、「変数に関数名を格納してそれを実行する」「結果の代入は必要ない」場合に用いる。
+function doFunc() {
+	local RESULT=$($@)
+	if [ "$RESULT" != '' ]; then
+		echo "$RESULT"
+	fi
 }
 
 # 検索対象文字列に対象行があった場合のみFunctionを実行する
 # $1=検索対象文字列(複数行) $2=検索対象条件(正規表現) $3=実行するFunction
 function doFuncIfKeyExists {
-	echo -e "$1" | while read line
-	do
-		local hit=$(echo $line | grep -E "$2" | wc -l)
-		if [ "$hit" -ge 1 ]; then
-			echo `$3`
-			return 0
-		fi
-	done
+	local hit=$(echo -e -n $1 | grep -E "$2" | wc -l)
+	if [ "$hit" -ge 1 ]; then
+		doFunc "$3"
+	fi
 }

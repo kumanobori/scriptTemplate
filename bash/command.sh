@@ -27,7 +27,7 @@ function setSshArgs2() {
 	doFuncIfKeyExists "${TARGETS}" 'prod_web1' 'portForwardProdWeb1'
 	doFuncIfKeyExists "${TARGETS}" 'prod_web2' 'portForwardProdWeb2'
 	
-	echo -e ${TARGETS} | while read line
+	echo -e -n ${TARGETS} | while read line
 	do
 		logDebug '-------------------------------'
 		items=(${line})
@@ -88,6 +88,7 @@ if [ "${LOGFILE}" = '' ]; then
 fi
 
 LOGPATH="$(cd $(dirname $0); pwd)/log/${LOGFILE}"
+exec 1> >(tee -a "${LOGPATH}") 2>&1
 logInfo "======================"
 logInfo "sendCommand.sh start."
 logInfo "LOGPATH=${LOGPATH}"

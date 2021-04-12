@@ -31,8 +31,9 @@ function setScpArgs2() {
 	local DIR_PATH=$( echo ${FILE_PATH} | sed -E 's:^(.+)/([^/]+)$:\1:')
 	local FILE_NAME=$(echo ${FILE_PATH} | sed -E 's:^(.+)/([^/]+)$:\2:')
 	logInfo "setScpArgs2: DIRPATH=${DIR_PATH}, FILENAME=${FILE_NAME}"
-
-	echo -e "${TARGETS}" | while read line
+	
+	logTrace "TARGETS=\n${TARGETS}"
+	echo -e -n "${TARGETS}" | while read line
 	do
 		logDebug '----------------------------------------'
 		items=(${line})
@@ -128,10 +129,11 @@ fi
 if [ "${LOGFILE}" = '' ]; then
 	LOGFILE="${START_YMD_HMS}_fetch.log"
 fi
-LOG_LEVEL=${LOG_LEVEL_DEBUG}
+LOG_LEVEL=${LOG_LEVEL_TRACE}
 
 
 LOGPATH="$(cd $(dirname $0); pwd)/log/${LOGFILE}"
+exec 1> >(tee -a "${LOGPATH}") 2>&1
 logDebug "========================"
 logInfo "fetch.sh start."
 logInfo "LOGPATH=${LOGPATH}"

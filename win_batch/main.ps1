@@ -2,7 +2,8 @@
 if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
 {
     echo "not administrator"
-    Start-Process powershell.exe "-File `"$MyInvocation.MyCommand.path`"" -Verb RunAs
+    Start-Process powershell.exe "-File `"$MyInvocation.MyCommand.path`"" -Verb RunAs $Args
+    exit
 }
 
 

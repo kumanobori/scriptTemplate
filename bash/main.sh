@@ -12,7 +12,8 @@ function help() {
 function init() {
 	logInfo 'init start.'
 	
-	logError "$START_TIMESTAMP"
+	logWarn "$START_UNIXTIME"
+	logError "$START_YMDHMS"
 	logWarn "$START_YMD_HMS"
 	logInfo "$START_YMD_HM"
 	logDebug "$START_YMD"
@@ -90,7 +91,7 @@ if [ ${MAIN_RESULT} -ne 0 ]; then
 	logError "main failed. error code = ${MAIN_RESULT}"
 fi
 
-logInfo 'term.'
+logInfo "term. elapsed time is $(getElapsedTime)."
 exit 0
 
 # -----------------------------------

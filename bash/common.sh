@@ -4,10 +4,12 @@
 # --------------------------------------------------------
 
 # 日付変数
-START_TIMESTAMP="$(date "+%Y%m%d%H%M%S")"
-START_YMD_HMS="${START_TIMESTAMP:0:8}_${START_TIMESTAMP:8:6}"
-START_YMD_HM="${START_TIMESTAMP:0:8}_${START_TIMESTAMP:8:4}"
-START_YMD="${START_TIMESTAMP:0:8}"
+START_UNIXTIME=$(date +%s)
+START_YMDHMS="$(date -d @${START_UNIXTIME} "+%Y%m%d%H%M%S")"
+START_YMD_HMS="${START_YMDHMS:0:8}_${START_YMDHMS:8:6}"
+START_YMD_HM="${START_YMDHMS:0:8}_${START_YMDHMS:8:4}"
+START_YMD="${START_YMDHMS:0:8}"
+TIMER_START=$START_UNIXTIME
 
 # ログレベル
 # デフォルトは全レベル出力。
@@ -102,4 +104,13 @@ function doFuncIfKeyExists {
 	if [ "$hit" -ge 1 ]; then
 		doFunc "$3"
 	fi
+}
+
+# TIMER_STARTのタイムスタンプ時刻から経過した時間を出力する。
+function getElapsedTime() {
+	local TIMER_END=$(date +%s)
+	local elapsed=$(( TIMER_END - TIMER_START ))
+	local min=$(( elapsed / 60 ))
+	local sec=$(printf "%02d" $(( elapsed % 60 )) )
+	echo "$min:$sec"
 }

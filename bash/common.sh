@@ -86,23 +86,12 @@ function getValueIfKeyExists {
 	fi
 }
 
-# コマンド置換の結果を変数に格納しない場合、
-# 内部でechoされたものをコマンドとして実行しようとしてエラーになる。
-# ・・・のを回避するための関数。
-# コマンド置換を、「変数に関数名を格納してそれを実行する」「結果の代入は必要ない」場合に用いる。
-function doFunc() {
-	local RESULT=$($@)
-	if [ "$RESULT" != '' ]; then
-		echo "$RESULT"
-	fi
-}
-
 # 検索対象文字列に対象行があった場合のみFunctionを実行する
 # $1=検索対象文字列(複数行) $2=検索対象条件(正規表現) $3=実行するFunction
 function doFuncIfKeyExists {
 	local hit=$(echo -e -n $1 | grep -E "$2" | wc -l)
 	if [ "$hit" -ge 1 ]; then
-		doFunc "$3"
+		eval "$3"
 	fi
 }
 
